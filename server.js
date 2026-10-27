@@ -5,7 +5,6 @@ const { findLinkByRoute, LINKS_DATA } = require('./links.js');
 function handler(req, res) {
   const urlObj = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   
-  // Extract route from query param (from Vercel rewrite $1), Vercel headers, or URL pathname
   let rawPath = 
     urlObj.searchParams.get('path') ||
     req.headers['x-matched-path'] ||
@@ -13,7 +12,6 @@ function handler(req, res) {
     urlObj.pathname ||
     '';
 
-  // Clean path
   let path = decodeURIComponent(rawPath.replace(/^\/+|\/+$/g, ''));
   if (path.startsWith('api/index')) {
     path = path.replace(/^api\/index\/?/, '');
@@ -25,7 +23,7 @@ function handler(req, res) {
     return res.end('<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="background:#fff;margin:0;"></body></html>');
   }
 
-  // Serve links.js if requested directly
+  // Serve links.js if requested
   if (path === 'links.js') {
     const fs = require('fs');
     res.writeHead(200, { 'Content-Type': 'application/javascript; charset=utf-8' });
@@ -34,17 +32,15 @@ function handler(req, res) {
 
   const target = findLinkByRoute(path);
 
-  // Server-side OS clipboard copy (works locally on Windows)
+  // Server-side clipboard copy when running locally on Windows
   if (target && target.url) {
     try {
       if (process.platform === 'win32') {
         execSync('clip', { input: target.url });
-        console.log(`[Copied to OS Clipboard]: /${path} -> ${target.url}`);
       }
     } catch (err) {}
   }
 
-  // HTML response with embedded URL (or client-side lookup fallback)
   const targetUrl = target ? target.url : '';
   const linksJson = JSON.stringify(LINKS_DATA);
 
@@ -54,7 +50,7 @@ function handler(req, res) {
   <meta charset="utf-8">
   <title></title>
 </head>
-<body style="background:#fff;margin:0;">
+<body style="background:#fff;margin:0;min-height:100vh;cursor:pointer;">
 <script>
 const LINKS = ${linksJson};
 function getLink(route) {
@@ -73,34 +69,49 @@ const clientUrl = getLink(location.pathname);
 const targetUrl = serverUrl || clientUrl;
 
 if (targetUrl) {
+  function copyExec(text) {
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed';
+      ta.style.left = '-9999px';
+      ta.style.top = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      ta.setSelectionRange(0, text.length);
+      const ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+      return ok;
+    } catch(e) {
+      return false;
+    }
+  }
+
   function exit() {
     window.close();
     try { window.open('', '_self', ''); window.close(); } catch(e){}
   }
 
-  function copy() {
-    try {
-      const ta = document.createElement('textarea');
-      ta.value = targetUrl;
-      ta.style.position = 'fixed';
-      ta.style.opacity = '0';
-      document.body.appendChild(ta);
-      ta.focus();
-      ta.select();
-      document.execCommand('copy');
-      document.body.removeChild(ta);
-    } catch(e){}
-
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(targetUrl).then(exit).catch(exit);
-    } else {
-      exit();
+  async function attemptCopy() {
+    let ok = copyExec(targetUrl);
+    if (!ok && navigator.clipboard && navigator.clipboard.writeText) {
+      try {
+        await navigator.clipboard.writeText(targetUrl);
+        ok = true;
+      } catch(e) {}
     }
+    if (ok) {
+      setTimeout(exit, 100);
+    }
+    return ok;
   }
 
-  copy();
-  window.addEventListener('click', () => { copy(); exit(); });
-  window.addEventListener('keydown', () => { copy(); exit(); });
+  attemptCopy();
+  window.addEventListener('focus', attemptCopy);
+  window.addEventListener('click', attemptCopy);
+  window.addEventListener('keydown', attemptCopy);
+  window.addEventListener('touchstart', attemptCopy);
 }
 </script>
 </body>
