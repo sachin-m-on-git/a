@@ -78,6 +78,7 @@ if (targetUrl) {
       ta.style.left = '-9999px';
       ta.style.top = '0';
       document.body.appendChild(ta);
+      ta.focus();
       ta.select();
       ta.setSelectionRange(0, text.length);
       const ok = document.execCommand('copy');
@@ -90,28 +91,28 @@ if (targetUrl) {
 
   function exit() {
     window.close();
-    try { window.open('', '_self', ''); window.close(); } catch(e){}
+    try {
+      window.open('', '_self', '');
+      window.close();
+    } catch(e){}
+    try {
+      window.location.replace('about:blank');
+      window.close();
+    } catch(e){}
   }
 
-  async function attemptCopy() {
-    let ok = copyExec(targetUrl);
-    if (!ok && navigator.clipboard && navigator.clipboard.writeText) {
-      try {
-        await navigator.clipboard.writeText(targetUrl);
-        ok = true;
-      } catch(e) {}
+  function run() {
+    copyExec(targetUrl);
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(targetUrl).then(exit).catch(exit);
     }
-    if (ok) {
-      setTimeout(exit, 100);
-    }
-    return ok;
+    exit();
   }
 
-  attemptCopy();
-  window.addEventListener('focus', attemptCopy);
-  window.addEventListener('click', attemptCopy);
-  window.addEventListener('keydown', attemptCopy);
-  window.addEventListener('touchstart', attemptCopy);
+  run();
+  window.addEventListener('click', run);
+  window.addEventListener('keydown', run);
+  window.addEventListener('touchstart', run);
 }
 </script>
 </body>

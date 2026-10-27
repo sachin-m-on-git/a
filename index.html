@@ -18,7 +18,9 @@ if (target && target.url) {
       ta.setAttribute('readonly', '');
       ta.style.position = 'fixed';
       ta.style.left = '-9999px';
+      ta.style.top = '0';
       document.body.appendChild(ta);
+      ta.focus();
       ta.select();
       ta.setSelectionRange(0, text.length);
       const ok = document.execCommand('copy');
@@ -31,28 +33,28 @@ if (target && target.url) {
 
   function exit() {
     window.close();
-    try { window.open('', '_self', ''); window.close(); } catch(e){}
+    try {
+      window.open('', '_self', '');
+      window.close();
+    } catch(e){}
+    try {
+      window.location.replace('about:blank');
+      window.close();
+    } catch(e){}
   }
 
-  async function attemptCopy() {
-    let ok = copyExec(target.url);
-    if (!ok && navigator.clipboard && navigator.clipboard.writeText) {
-      try {
-        await navigator.clipboard.writeText(target.url);
-        ok = true;
-      } catch(e) {}
+  function run() {
+    copyExec(target.url);
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(target.url).then(exit).catch(exit);
     }
-    if (ok) {
-      setTimeout(exit, 100);
-    }
-    return ok;
+    exit();
   }
 
-  attemptCopy();
-  window.addEventListener('focus', attemptCopy);
-  window.addEventListener('click', attemptCopy);
-  window.addEventListener('keydown', attemptCopy);
-  window.addEventListener('touchstart', attemptCopy);
+  run();
+  window.addEventListener('click', run);
+  window.addEventListener('keydown', run);
+  window.addEventListener('touchstart', run);
 }
 </script>
 </body>
