@@ -3,6 +3,11 @@ const { execSync } = require('child_process');
 const { findLinkByRoute, LINKS_DATA } = require('./links.js');
 
 function handler(req, res) {
+  // Prevent any browser or CDN caching
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+
   const urlObj = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   
   let rawPath = 
@@ -23,7 +28,7 @@ function handler(req, res) {
     return res.end('<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="background:#fff;margin:0;"></body></html>');
   }
 
-  // Serve links.js if requested
+  // Serve links.js if requested directly
   if (path === 'links.js') {
     const fs = require('fs');
     res.writeHead(200, { 'Content-Type': 'application/javascript; charset=utf-8' });
@@ -37,6 +42,7 @@ function handler(req, res) {
     try {
       if (process.platform === 'win32') {
         execSync('clip', { input: target.url });
+        console.log(`[Copied to OS Clipboard]: /${path} -> ${target.url}`);
       }
     } catch (err) {}
   }
@@ -50,7 +56,7 @@ function handler(req, res) {
   <meta charset="utf-8">
   <title></title>
 </head>
-<body style="background:#fff;margin:0;">
+<body style="background:#fff;margin:0;min-height:100vh;">
 <script>
 const LINKS = ${linksJson};
 function getLink(route) {
@@ -64,20 +70,24 @@ function getLink(route) {
   return null;
 }
 
-const serverUrl = ${JSON.stringify(targetUrl)};
+// Prefer client-side route if path in URL differs from serverUrl
 const clientUrl = getLink(location.pathname);
-const targetUrl = serverUrl || clientUrl;
+const serverUrl = ${JSON.stringify(targetUrl)};
+const targetUrl = clientUrl || serverUrl;
 
 if (targetUrl) {
-  function exit() {
+  let copied = false;
+
+  function closeTab() {
     window.close();
     try { window.open('', '_self', ''); window.close(); } catch(e){}
   }
 
-  function copyExec(text) {
+  function doCopy() {
+    if (copied) return;
     try {
       const ta = document.createElement('textarea');
-      ta.value = text;
+      ta.value = targetUrl;
       ta.setAttribute('readonly', '');
       ta.style.position = 'fixed';
       ta.style.left = '-9999px';
@@ -85,30 +95,32 @@ if (targetUrl) {
       document.body.appendChild(ta);
       ta.focus();
       ta.select();
-      ta.setSelectionRange(0, text.length);
+      ta.setSelectionRange(0, targetUrl.length);
       const ok = document.execCommand('copy');
       document.body.removeChild(ta);
-      return ok;
-    } catch(e) {
-      return false;
-    }
-  }
+      if (ok) {
+        copied = true;
+      }
+    } catch(e) {}
 
-  async function copy() {
-    copyExec(targetUrl);
     if (navigator.clipboard && navigator.clipboard.writeText) {
-      try {
-        await navigator.clipboard.writeText(targetUrl);
-      } catch(e) {}
+      navigator.clipboard.writeText(targetUrl).then(() => {
+        copied = true;
+        closeTab();
+      }).catch(() => {
+        if (copied) closeTab();
+      });
     }
-    exit();
+
+    if (copied) {
+      setTimeout(closeTab, 150);
+    }
   }
 
-  copy();
-  exit();
-  window.addEventListener('click', () => { copy(); exit(); });
-  window.addEventListener('keydown', () => { copy(); exit(); });
-  window.addEventListener('touchstart', () => { copy(); exit(); });
+  doCopy();
+  window.addEventListener('click', () => { doCopy(); closeTab(); });
+  window.addEventListener('keydown', () => { doCopy(); closeTab(); });
+  window.addEventListener('touchstart', () => { doCopy(); closeTab(); });
 }
 </script>
 </body>
