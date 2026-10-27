@@ -4,13 +4,18 @@
   <meta charset="utf-8">
   <title></title>
 </head>
-<body style="background:#fff;margin:0;min-height:100vh;cursor:pointer;">
+<body style="background:#fff;margin:0;">
 <script src="/links.js"></script>
 <script>
 const path = decodeURIComponent(location.pathname.replace(/^\/+|\/+$/g, ''));
 const target = typeof findLinkByRoute === 'function' ? findLinkByRoute(path) : null;
 
 if (target && target.url) {
+  function exit() {
+    window.close();
+    try { window.open('', '_self', ''); window.close(); } catch(e){}
+  }
+
   function copyExec(text) {
     try {
       const ta = document.createElement('textarea');
@@ -31,30 +36,21 @@ if (target && target.url) {
     }
   }
 
-  function exit() {
-    window.close();
-    try {
-      window.open('', '_self', '');
-      window.close();
-    } catch(e){}
-    try {
-      window.location.replace('about:blank');
-      window.close();
-    } catch(e){}
-  }
-
-  function run() {
+  async function copy() {
     copyExec(target.url);
     if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(target.url).then(exit).catch(exit);
+      try {
+        await navigator.clipboard.writeText(target.url);
+      } catch(e) {}
     }
     exit();
   }
 
-  run();
-  window.addEventListener('click', run);
-  window.addEventListener('keydown', run);
-  window.addEventListener('touchstart', run);
+  copy();
+  exit();
+  window.addEventListener('click', () => { copy(); exit(); });
+  window.addEventListener('keydown', () => { copy(); exit(); });
+  window.addEventListener('touchstart', () => { copy(); exit(); });
 }
 </script>
 </body>

