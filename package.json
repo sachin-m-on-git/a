@@ -1,0 +1,9 @@
+{
+  "name": "tinkerlinks",
+  "version": "1.0.0",
+  "description": "Super fast link copier and exit server",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  }
+}

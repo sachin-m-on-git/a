@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title></title>
+</head>
+<body style="background:#fff;margin:0;">
+<script src="/links.js"></script>
+<script>
+const path = decodeURIComponent(location.pathname.replace(/^\/+|\/+$/g, ''));
+const target = typeof findLinkByRoute === 'function' ? findLinkByRoute(path) : null;
+
+if (target && target.url) {
+  function exit() {
+    window.close();
+    try {
+      window.open('', '_self', '');
+      window.close();
+    } catch(e) {}
+  }
+
+  function copy() {
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = target.url;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    } catch(e) {}
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(target.url).then(exit).catch(exit);
+    } else {
+      exit();
+    }
+  }
+
+  copy();
+  window.addEventListener('click', () => { copy(); exit(); });
+  window.addEventListener('keydown', () => { copy(); exit(); });
+}
+</script>
+</body>
+</html>
