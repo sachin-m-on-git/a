@@ -5,13 +5,13 @@
   <title></title>
 </head>
 <body style="background:#fff;margin:0;min-height:100vh;">
-<script src="/links.js"></script>
+<script src="/programs.js"></script>
 <script>
 const path = decodeURIComponent(location.pathname.replace(/^\/+|\/+$/g, ''));
-const target = typeof findLinkByRoute === 'function' ? findLinkByRoute(path) : null;
+const target = typeof findProgramByRoute === 'function' ? findProgramByRoute(path) : null;
 
-if (target && target.url) {
-  const targetUrl = target.url;
+if (target && target.code) {
+  const targetCode = target.code;
   let copied = false;
 
   function closeTab() {
@@ -23,7 +23,7 @@ if (target && target.url) {
     if (copied) return;
     try {
       const ta = document.createElement('textarea');
-      ta.value = targetUrl;
+      ta.value = targetCode;
       ta.setAttribute('readonly', '');
       ta.style.position = 'fixed';
       ta.style.left = '-9999px';
@@ -31,7 +31,7 @@ if (target && target.url) {
       document.body.appendChild(ta);
       ta.focus();
       ta.select();
-      ta.setSelectionRange(0, targetUrl.length);
+      ta.setSelectionRange(0, targetCode.length);
       const ok = document.execCommand('copy');
       document.body.removeChild(ta);
       if (ok) {
@@ -40,7 +40,7 @@ if (target && target.url) {
     } catch(e) {}
 
     if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(targetUrl).then(() => {
+      navigator.clipboard.writeText(targetCode).then(() => {
         copied = true;
         closeTab();
       }).catch(() => {
